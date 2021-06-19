@@ -1,15 +1,14 @@
 /* aspect extension for PHP (c) 2021 xycc<xycc.invoker@gmail.com> */
-
+#pragma once
 #ifndef PHP_ASPECT_H
 # define PHP_ASPECT_H
+#include <expr.h>
 
 extern "C" {
     extern zend_module_entry aspect_module_entry;
     # define phpext_aspect_ptr &aspect_module_entry
 
-    // 全局变量， 用于缓存aspect相关信息
     ZEND_BEGIN_MODULE_GLOBALS(aspect)
-        // zend_array aspects;
         zval aspects;
         zend_bool enable_cache;
         // zval fit;
@@ -24,5 +23,4 @@ extern "C" {
 
     #define ASPECT_G(v) ZEND_MODULE_GLOBALS_ACCESSOR(aspect, v)
 }
-
 #endif	/* PHP_ASPECT_H */

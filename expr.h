@@ -122,4 +122,5 @@ public:
             && ((func->common.fn_flags & ZEND_ACC_HAS_RETURN_TYPE) || match_return_type(func->common.arg_info[-1]));
     }
 };
+
 #endif //ASPECT_EXPR_H

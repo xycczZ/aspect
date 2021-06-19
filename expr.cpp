@@ -68,8 +68,12 @@ vector<string> split(const string& str, char sep) {
 string trim(const string& str) {
     if (str.empty()) { return string{}; }
     auto first_pos = str.find_first_not_of(' ');
-    auto end_pos = str.find_last_of(' ') + 1;
-    return str.substr(first_pos, end_pos);
+    if (first_pos == string::npos) {
+        return string{};
+    }
+    auto end_pos = str.find_last_of(' ');
+    auto result = str.substr(first_pos, end_pos);
+    return result;
 }
 
 /**
@@ -96,7 +100,7 @@ Expr::Expr(const string& str): AbstractExpr(trim(str)) {
     }
 }
 
-bool Expr::isMatch(const string& clazz, const std::string &method) const {
+bool Expr::isMatch(const string& clazz, const string &method) const {
     if (isMatchAll()) {
         return true;
     }
@@ -104,7 +108,7 @@ bool Expr::isMatch(const string& clazz, const std::string &method) const {
     return class_expr->isMatch(clazz) && method_expr->isMatch(clazz, method);
 }
 
-bool ClassExpr::isMatch(const std::string &fqn) const {
+bool ClassExpr::isMatch(const string &fqn) const {
     if (isMatchAll()) {
         return true;
     }
@@ -124,7 +128,7 @@ bool MethodExpr::match_access(uint32_t access) const {
     return access & acc;
 }
 
-bool MethodExpr::match_method(const std::string &method) const {
+bool MethodExpr::match_method(const string &method) const {
     auto pos = method.find('*');
     if (pos == string::npos) {
         return method == *expr;
