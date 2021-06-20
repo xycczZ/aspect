@@ -10,11 +10,14 @@ extern "C" {
 #include "aspect_arginfo.h"
 #include "zend_interfaces.h"
 #include "zend_closures.h"
+#include "zend_exceptions.h"
 }
 #include "php_aspect.h"
 #include <algorithm>
 #include <vector>
 #include <string>
+
+#define FETCH_RUNTIME_E (zend_fetch_class(zend_string_init_interned("RuntimeException", strlen("RuntimeException"), 1), ZEND_FETCH_CLASS_EXCEPTION))
 
 ZEND_DECLARE_MODULE_GLOBALS(aspect)
 
@@ -43,15 +46,19 @@ PHP_FUNCTION(add_aspect)
     ZEND_HASH_FOREACH_KEY(Z_ARR_P(advises), h, key)
         std::string s{key->val};
         if (std::find(valid_keys.begin(), valid_keys.end(), s) == valid_keys.end()) {
+            auto msg = "invalid advise type: '" + s + "', must in ['before', 'after', 'afterReturning', 'afterThrowing', 'around']";
+            zend_throw_exception(FETCH_RUNTIME_E, msg.c_str(), 0);
             RETURN_FALSE;
         }
         if (Z_TYPE_P(_z) != IS_ARRAY) {
+            zend_throw_exception(FETCH_RUNTIME_E, "advises need advise array", 1);
             RETURN_FALSE;
         }
 
         zval *handler;
         ZEND_HASH_FOREACH_VAL(Z_ARR_P(_z), handler)
-            if (! zend_is_callable(handler, IS_CALLABLE_CHECK_SYNTAX_ONLY, nullptr)) {
+            if (! zend_is_callable(handler, IS_CALLABLE_CHECK_SILENT, nullptr)) {
+                zend_throw_exception(FETCH_RUNTIME_E, "advise must be callable", 2);
                 RETURN_FALSE;
             }
         ZEND_HASH_FOREACH_END();
@@ -176,6 +183,7 @@ static zend_bool create_aspect_cb(zend_string *name)
 
 PHP_MINIT_FUNCTION(aspect)
 {
+    init_signature_ce();
     zend_register_auto_global(zend_string_init_interned("_ASPECT", strlen("_ASPECT"), true), false, create_aspect_cb);
     return SUCCESS;
 }

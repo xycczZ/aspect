@@ -2,7 +2,8 @@
 #pragma once
 #ifndef PHP_ASPECT_H
 # define PHP_ASPECT_H
-#include <expr.h>
+#include "expr.h"
+#include "signature.h"
 
 extern "C" {
     extern zend_module_entry aspect_module_entry;
@@ -22,5 +23,6 @@ extern "C" {
     # endif
 
     #define ASPECT_G(v) ZEND_MODULE_GLOBALS_ACCESSOR(aspect, v)
+
 }
 #endif	/* PHP_ASPECT_H */
