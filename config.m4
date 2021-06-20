@@ -93,5 +93,5 @@ if test "$PHP_ASPECT" != "no"; then
   PHP_REQUIRE_CXX()
   PHP_ADD_LIBRARY(stdc++, 1, $EXTRA_LDFLAGS)
 
-  PHP_NEW_EXTENSION(aspect, aspect.cpp expr.cpp signature.cpp, $ext_shared)
+  PHP_NEW_EXTENSION(aspect, aspect.cpp expr.cpp signature.cpp join_point.cpp, $ext_shared)
 fi

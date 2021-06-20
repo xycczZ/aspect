@@ -4,6 +4,7 @@
 # define PHP_ASPECT_H
 #include "expr.h"
 #include "signature.h"
+#include "join_point.h"
 
 extern "C" {
     extern zend_module_entry aspect_module_entry;
@@ -25,4 +26,12 @@ extern "C" {
     #define ASPECT_G(v) ZEND_MODULE_GLOBALS_ACCESSOR(aspect, v)
 
 }
+
+int compare_aop(Bucket*, Bucket*);
+
+void call_before(Bucket*, zend_string*);
+void call_around(Bucket*, zend_string*);
+void call_after_returning(Bucket*, zend_string*);
+void call_after_throwing(Bucket*, zend_string*);
+void call_after(Bucket*, zend_string*);
 #endif	/* PHP_ASPECT_H */

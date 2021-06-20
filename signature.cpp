@@ -5,18 +5,6 @@
 #include "signature.h"
 zend_class_entry *signature_ce;
 
-#define GETTER(v) zend_read_property(ZEND_THIS->value.obj->ce, ZEND_THIS->value.obj, #v, strlen(#v), true, nullptr)
-#define SETTER_VAL(p, v) zend_update_property(ZEND_THIS->value.obj->ce, ZEND_THIS->value.obj, #p, strlen(#p), v)
-#define SETTER_STR(p, v) zend_update_property_str(ZEND_THIS->value.obj->ce, ZEND_THIS->value.obj, #p, strlen(#p), v)
-
-#define DECLARE_TYPED_PROP(name, type_mask) do { \
-    zval default_val; \
-    ZVAL_UNDEF(&default_val); \
-    zend_string *argName = zend_string_init(#name, strlen(#name), true); \
-    zend_declare_typed_property(signature_ce, argName, &default_val, ZEND_ACC_PRIVATE, nullptr, (zend_type) ZEND_TYPE_INIT_MASK(type_mask)); \
-    zend_string_release(argName);                                  \
-} while (0);
-
 BEGIN_EXTERN_C()
 static PHP_METHOD(signature, __construct);
 static PHP_METHOD(signature, getClassName);
@@ -71,7 +59,7 @@ void init_signature_ce()
     INIT_CLASS_ENTRY(ce, "Xycc\\Aspect\\Signature", signature_methods);
     signature_ce = zend_register_internal_class(&ce);
 
-    DECLARE_TYPED_PROP(className, MAY_BE_STRING);
-    DECLARE_TYPED_PROP(methodName, MAY_BE_STRING);
-    DECLARE_TYPED_PROP(args, MAY_BE_ARRAY);
+    DECLARE_TYPED_PROP_UNDEF_DEFAULT(signature_ce, className, MAY_BE_STRING)
+    DECLARE_TYPED_PROP_UNDEF_DEFAULT(signature_ce, methodName, MAY_BE_STRING)
+    DECLARE_TYPED_PROP_UNDEF_DEFAULT(signature_ce, args, MAY_BE_ARRAY)
 }

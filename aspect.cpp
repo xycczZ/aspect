@@ -18,6 +18,7 @@ extern "C" {
 #include <string>
 
 #define FETCH_RUNTIME_E (zend_fetch_class(zend_string_init_interned("RuntimeException", strlen("RuntimeException"), 1), ZEND_FETCH_CLASS_EXCEPTION))
+#define PERMANENT_STR(s) zend_string_init_interned(#s, strlen(#s), true)
 
 ZEND_DECLARE_MODULE_GLOBALS(aspect)
 
@@ -33,9 +34,12 @@ PHP_FUNCTION(add_aspect)
 {
     zend_string *expr;
     zval *advises;
-    ZEND_PARSE_PARAMETERS_START(2, 2)
+	zend_long order = 10;
+    ZEND_PARSE_PARAMETERS_START(2, 3)
         Z_PARAM_STR(expr)
         Z_PARAM_ARRAY(advises)
+		Z_PARAM_OPTIONAL
+		Z_PARAM_LONG(order)
     ZEND_PARSE_PARAMETERS_END();
 
     zend_long h;
@@ -65,7 +69,10 @@ PHP_FUNCTION(add_aspect)
     ZEND_HASH_FOREACH_END();
 
     // 然后加入全局变量中
+	add_assoc_long(advises, "order", order);
     zend_hash_update(Z_ARR(ASPECT_G(aspects)), expr, advises);
+	// 排序
+	zend_hash_sort(Z_ARR(ASPECT_G(aspects)), compare_aop, 0);
     Z_TRY_ADDREF_P(advises);
     // 生成切点表达式
 //    exprs.push_back(new Expr(std::string{expr->val}));
@@ -109,42 +116,33 @@ static int inject(zend_execute_data *execute_data)
             auto cb = fit(dot_name, std::string{execute_data->call->func->common.function_name->val});
             if (zend_array_count(Z_ARR(cb)) != 0) {
                 // before
-                auto key = zend_string_init_interned("before", strlen("before"), 1);
+				auto before_key = PERMANENT_STR(before);
+				auto after_key = PERMANENT_STR(after);
+				auto after_returning_key = PERMANENT_STR(afterReturning);
+				auto after_throwing_key = PERMANENT_STR(afterThrowing);
+				auto around_key = PERMANENT_STR(around);
+
                 Bucket *cbs;
                 ZEND_HASH_FOREACH_BUCKET(Z_ARR(cb), cbs)
-                    auto before = zend_hash_find(Z_ARR(cbs->val), key);
-                    if (before != nullptr) {
-                        Bucket *item;
-                        ZEND_HASH_FOREACH_BUCKET(Z_ARR_P(before), item)
-                            auto item_type = Z_TYPE(item->val);
-                            if (item_type == IS_OBJECT) {
-                                auto obj = Z_OBJ(item->val);
-                                zend_class_entry *ce;
-                                zend_function *fe;
-                                zend_object *self;
-                                auto res = zend_std_get_closure(obj, &ce, &fe, &self, true);
-                                if (res == FAILURE) {
-                                    auto func = zend_get_closure_invoke_method(item->val.value.obj);
-                                    zend_call_known_function(func, item->val.value.obj, item->val.value.obj->ce, nullptr, 0, nullptr, nullptr);
-                                } else {
-                                    zend_call_known_function(fe, self, ce, nullptr, 0, nullptr, nullptr);
-                                }
-                                // zend_execute(&fe->op_array, nullptr);
-                            }
-                        ZEND_HASH_FOREACH_END();
-                    }
+                    call_before(cbs, before_key);
                 ZEND_HASH_FOREACH_END();
-                // around
-                // after
-                // afterReturning
-                // afterThrowing
+
+//                ZEND_HASH_FOREACH_BUCKET(Z_ARR(cb), cbs)
+//                    call_around(cbs, around_key);
+//                ZEND_HASH_FOREACH_END();
             }
+			// execute origin function
+			zval retval;
+			zend_execute(&execute_data->call->func->op_array, &retval);
+			php_printf("done!\n");
+			execute_data->call->return_value = &retval;
+			Z_TRY_ADDREF(retval);
+			php_printf("really done!\n");
         } else {
             php_printf("call: %s\n", execute_data->call->func->common.function_name->val);
         }
     }
-
-    return ZEND_USER_OPCODE_DISPATCH;
+	return ZEND_USER_OPCODE_DISPATCH;
 }
 
 /* {{{ PHP_RINIT_FUNCTION */
@@ -184,6 +182,7 @@ static zend_bool create_aspect_cb(zend_string *name)
 PHP_MINIT_FUNCTION(aspect)
 {
     init_signature_ce();
+    init_join_point();
     zend_register_auto_global(zend_string_init_interned("_ASPECT", strlen("_ASPECT"), true), false, create_aspect_cb);
     return SUCCESS;
 }
@@ -209,3 +208,58 @@ ZEND_TSRMLS_CACHE_DEFINE()
 # endif
 ZEND_GET_MODULE(aspect)
 #endif
+
+
+void call_before(Bucket *cbs, zend_string *before_key)
+{
+	auto before = zend_hash_find(Z_ARR(cbs->val), before_key);
+	if (before != nullptr) {
+		Bucket *item;
+		ZEND_HASH_FOREACH_BUCKET(Z_ARR_P(before), item)
+			auto item_type = Z_TYPE(item->val);
+			if (item_type == IS_OBJECT) {
+				auto obj = Z_OBJ(item->val);
+				zend_class_entry *ce;
+				zend_function *fe;
+				zend_object *self;
+				auto res = zend_std_get_closure(obj, &ce, &fe, &self, true);
+				if (res == FAILURE) {
+					auto func = zend_get_closure_invoke_method(item->val.value.obj);
+					zend_call_known_function(func, item->val.value.obj, item->val.value.obj->ce, nullptr, 0, nullptr, nullptr);
+				} else {
+					zend_call_known_function(fe, self, ce, nullptr, 0, nullptr, nullptr);
+				}
+			} else if (item_type == IS_ARRAY) {
+				auto cb = Z_ARR(item->val);
+				auto first = zend_hash_index_find(cb, 0);
+				auto method = zend_hash_index_find(cb, 1);
+				zval *func;
+				zend_object *obj;
+				zend_class_entry *scope;
+				if (Z_TYPE_P(first) == IS_OBJECT) {
+					obj = Z_OBJ_P(first);
+					scope = obj->ce;
+					func = zend_hash_find(&Z_OBJ_P(first)->ce->function_table, Z_STR_P(method));
+				} else {
+					obj = nullptr;
+					scope = zend_fetch_class(Z_STR_P(first), ZEND_FETCH_CLASS_AUTO);
+					func = zend_hash_find(&scope->function_table, Z_STR_P(method));
+				}
+				zend_call_known_function(Z_FUNC_P(func), obj, scope, nullptr, 0, nullptr, nullptr);
+			}
+		ZEND_HASH_FOREACH_END();
+	}
+}
+
+int compare_aop(Bucket* a, Bucket* b)
+{
+	php_printf("bucket type: %d\n", Z_TYPE(a->val));
+	zval *ao = zend_hash_str_find(Z_ARR(a->val), "order", strlen("order"));
+	zval *bo = zend_hash_str_find(Z_ARR(b->val), "order", strlen("order"));
+	
+	if (Z_LVAL_P(ao) == Z_LVAL_P(bo)) {
+		return 0;
+	}
+
+	return Z_LVAL_P(ao) > Z_LVAL_P(bo) ? 1 : -1;
+}
