@@ -17,9 +17,6 @@ extern "C" {
 #include <vector>
 #include <string>
 
-#define FETCH_RUNTIME_E (zend_fetch_class(zend_string_init_interned("RuntimeException", strlen("RuntimeException"), 1), ZEND_FETCH_CLASS_EXCEPTION))
-#define PERMANENT_STR(s) zend_string_init_interned(#s, strlen(#s), true)
-
 ZEND_DECLARE_MODULE_GLOBALS(aspect)
 
 /* For compatibility with older PHP versions */

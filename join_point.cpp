@@ -7,16 +7,25 @@
 
 zend_class_entry *join_point_ce;
 extern zend_class_entry *signature_ce;
+zend_class_entry *proceed_join_point_ce;
 
 BEGIN_EXTERN_C()
 static PHP_METHOD(JoinPoint, __construct);
 static PHP_METHOD(JoinPoint, getSignature);
+
+static PHP_METHOD(ProceedJoinPoint, __construct);
+static PHP_METHOD(ProceedJoinPoint, proceed);
 END_EXTERN_C()
 
 static const zend_function_entry join_point_ms[] = {
         PHP_ME(JoinPoint, __construct, arginfo_jp_construct, ZEND_ACC_PUBLIC|ZEND_ACC_CTOR)
         PHP_ME(JoinPoint, getSignature, arginfo_jp_get_signature, ZEND_ACC_PUBLIC)
         PHP_FE_END
+};
+
+static const zend_function_entry pjpm[] = {
+    PHP_ME(ProceedJoinPoint, proceed, arginfo_pjp_proceed, ZEND_ACC_PUBLIC)
+    PHP_FE_END
 };
 
 PHP_METHOD(JoinPoint, __construct)
@@ -35,6 +44,11 @@ PHP_METHOD(JoinPoint, getSignature)
     RETURN_OBJ(Z_OBJ_P(p));
 }
 
+PHP_METHOD(ProceedJoinPoint, proceed)
+{
+    
+}
+
 void init_join_point()
 {
     zend_class_entry ce;
@@ -44,4 +58,8 @@ void init_join_point()
     zend_type zt;
     ZEND_TYPE_SET_CE(zt, signature_ce);
     DECLARE_TYPED_PROP_UNDEF_DEFAULT_EX(join_point_ce, signature, zt)
+
+    zend_class_entry pce;
+    INIT_CLASS_ENTRY(pce, "Xycc\\Aspect\\ProceedJoinPoint", pjpm);
+    proceed_join_point_ce = zend_register_internal_class_ex(&pce, join_point_ce);
 }

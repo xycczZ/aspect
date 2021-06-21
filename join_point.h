@@ -16,6 +16,9 @@ ZEND_END_ARG_INFO()
 ZEND_BEGIN_ARG_INFO_EX(arginfo_jp_get_signature, 0, 0, 0)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO(arginfo_pjp_proceed, IS_MIXED, true)
+ZEND_END_ARG_INFO()
+
 void init_join_point();
 
 #endif //ASPECT_JOIN_POINT_H
