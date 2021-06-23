@@ -13,6 +13,8 @@ extern "C" {
     ZEND_BEGIN_MODULE_GLOBALS(aspect)
         zval aspects;
         zend_bool enable_cache;
+        // user_opcode_handler_t origin;
+        // user_opcode_handler_t origin_name;
         // zval fit;
         // zval no_fit;
     ZEND_END_MODULE_GLOBALS(aspect);
@@ -32,7 +34,7 @@ extern "C" {
 
 int compare_aop(Bucket*, Bucket*);
 
-void call_before(Bucket*, zend_string*);
+void call_before(Bucket*, zend_string*, zval*);
 void call_around(Bucket*, zend_string*);
 void call_after_returning(Bucket*, zend_string*);
 void call_after_throwing(Bucket*, zend_string*);

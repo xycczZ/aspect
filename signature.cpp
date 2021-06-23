@@ -5,13 +5,6 @@
 #include "signature.h"
 zend_class_entry *signature_ce;
 
-BEGIN_EXTERN_C()
-static PHP_METHOD(signature, __construct);
-static PHP_METHOD(signature, getClassName);
-static PHP_METHOD(signature, getMethodName);
-static PHP_METHOD(signature, getArgs);
-END_EXTERN_C()
-
 PHP_METHOD(signature, getClassName)
 {
     auto prop = GETTER(className);
@@ -45,14 +38,6 @@ PHP_METHOD(signature, __construct)
     SETTER_VAL(args, args);
 }
 
-const static zend_function_entry signature_methods[] = {
-    PHP_ME(signature, __construct, arginfo_construct, ZEND_ACC_PUBLIC|ZEND_ACC_CTOR)
-    PHP_ME(signature, getClassName, arginfo_get_class_name, ZEND_ACC_PUBLIC)
-    PHP_ME(signature, getMethodName, arginfo_get_method_name, ZEND_ACC_PUBLIC)
-    PHP_ME(signature, getArgs, arginfo_get_args, ZEND_ACC_PUBLIC)
-    PHP_FE_END
-};
-
 void init_signature_ce()
 {
     zend_class_entry ce;
@@ -62,4 +47,32 @@ void init_signature_ce()
     DECLARE_TYPED_PROP_UNDEF_DEFAULT(signature_ce, className, MAY_BE_STRING)
     DECLARE_TYPED_PROP_UNDEF_DEFAULT(signature_ce, methodName, MAY_BE_STRING)
     DECLARE_TYPED_PROP_UNDEF_DEFAULT(signature_ce, args, MAY_BE_ARRAY)
+}
+
+zval new_signature(zend_execute_data *execute_data)
+{
+    zval signature;
+
+    zval clazz;
+    ZVAL_STR_COPY(&clazz, execute_data->call->func->common.scope->name);
+    zval method;
+    ZVAL_STR_COPY(&method, execute_data->call->func->common.function_name);
+    zval index_args;
+    array_init_size(&index_args, ZEND_CALL_NUM_ARGS(execute_data->call));
+
+
+    for (uint32_t i = 0; i < ZEND_CALL_NUM_ARGS(execute_data->call); ++i) {
+        auto arg = ZEND_CALL_VAR_NUM(execute_data->call, i);
+        add_index_zval(&index_args, i, arg);
+    }
+
+    zval args[3] = {
+            clazz, method, index_args
+    };
+
+    object_init_ex(&signature, signature_ce);
+
+    zend_call_known_function(signature_ce->constructor, Z_OBJ(signature), Z_OBJCE(signature), nullptr, 3, args, nullptr);
+
+    return signature;
 }

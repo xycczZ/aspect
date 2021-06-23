@@ -18,6 +18,7 @@ extern "C" {
 #include <string>
 
 ZEND_DECLARE_MODULE_GLOBALS(aspect)
+extern zend_class_entry *signature_ce;
 
 /* For compatibility with older PHP versions */
 #ifndef ZEND_PARSE_PARAMETERS_NONE
@@ -119,9 +120,12 @@ static int inject(zend_execute_data *execute_data)
 				auto after_throwing_key = PERMANENT_STR(afterThrowing);
 				auto around_key = PERMANENT_STR(around);
 
+				// generate signatures
+				auto signature = new_signature(execute_data);
+
                 Bucket *cbs;
                 ZEND_HASH_FOREACH_BUCKET(Z_ARR(cb), cbs)
-                    call_before(cbs, before_key);
+                    call_before(cbs, before_key, &signature);
                 ZEND_HASH_FOREACH_END();
 
 //                ZEND_HASH_FOREACH_BUCKET(Z_ARR(cb), cbs)
@@ -129,12 +133,7 @@ static int inject(zend_execute_data *execute_data)
 //                ZEND_HASH_FOREACH_END();
             }
 			// execute origin function
-			zval retval;
-			zend_execute(&execute_data->call->func->op_array, &retval);
-			php_printf("done!\n");
-			execute_data->call->return_value = &retval;
-			Z_TRY_ADDREF(retval);
-			php_printf("really done!\n");
+            return ZEND_USER_OPCODE_RETURN;
         } else {
             php_printf("call: %s\n", execute_data->call->func->common.function_name->val);
         }
@@ -207,7 +206,7 @@ ZEND_GET_MODULE(aspect)
 #endif
 
 
-void call_before(Bucket *cbs, zend_string *before_key)
+void call_before(Bucket *cbs, zend_string *before_key, zval *signature)
 {
 	auto before = zend_hash_find(Z_ARR(cbs->val), before_key);
 	if (before != nullptr) {
@@ -222,9 +221,9 @@ void call_before(Bucket *cbs, zend_string *before_key)
 				auto res = zend_std_get_closure(obj, &ce, &fe, &self, true);
 				if (res == FAILURE) {
 					auto func = zend_get_closure_invoke_method(item->val.value.obj);
-					zend_call_known_function(func, item->val.value.obj, item->val.value.obj->ce, nullptr, 0, nullptr, nullptr);
+					zend_call_known_function(func, item->val.value.obj, item->val.value.obj->ce, nullptr, 1, signature, nullptr);
 				} else {
-					zend_call_known_function(fe, self, ce, nullptr, 0, nullptr, nullptr);
+					zend_call_known_function(fe, self, ce, nullptr, 1, signature, nullptr);
 				}
 			} else if (item_type == IS_ARRAY) {
 				auto cb = Z_ARR(item->val);
@@ -242,7 +241,7 @@ void call_before(Bucket *cbs, zend_string *before_key)
 					scope = zend_fetch_class(Z_STR_P(first), ZEND_FETCH_CLASS_AUTO);
 					func = zend_hash_find(&scope->function_table, Z_STR_P(method));
 				}
-				zend_call_known_function(Z_FUNC_P(func), obj, scope, nullptr, 0, nullptr, nullptr);
+				zend_call_known_function(Z_FUNC_P(func), obj, scope, nullptr, 1, signature, nullptr);
 			}
 		ZEND_HASH_FOREACH_END();
 	}
