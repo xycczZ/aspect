@@ -122,10 +122,11 @@ static int inject(zend_execute_data *execute_data)
 
 				// generate signatures
 				auto signature = new_signature(execute_data);
+				auto jp = create_join_point(&signature);
 
                 Bucket *cbs;
                 ZEND_HASH_FOREACH_BUCKET(Z_ARR(cb), cbs)
-                    call_before(cbs, before_key, &signature);
+                    call_before(cbs, before_key, &jp);
                 ZEND_HASH_FOREACH_END();
 
 //                ZEND_HASH_FOREACH_BUCKET(Z_ARR(cb), cbs)
@@ -206,7 +207,7 @@ ZEND_GET_MODULE(aspect)
 #endif
 
 
-void call_before(Bucket *cbs, zend_string *before_key, zval *signature)
+void call_before(Bucket *cbs, zend_string *before_key, zval *jp)
 {
 	auto before = zend_hash_find(Z_ARR(cbs->val), before_key);
 	if (before != nullptr) {
@@ -221,9 +222,9 @@ void call_before(Bucket *cbs, zend_string *before_key, zval *signature)
 				auto res = zend_std_get_closure(obj, &ce, &fe, &self, true);
 				if (res == FAILURE) {
 					auto func = zend_get_closure_invoke_method(item->val.value.obj);
-					zend_call_known_function(func, item->val.value.obj, item->val.value.obj->ce, nullptr, 1, signature, nullptr);
+					zend_call_known_function(func, item->val.value.obj, item->val.value.obj->ce, nullptr, 1, jp, nullptr);
 				} else {
-					zend_call_known_function(fe, self, ce, nullptr, 1, signature, nullptr);
+					zend_call_known_function(fe, self, ce, nullptr, 1, jp, nullptr);
 				}
 			} else if (item_type == IS_ARRAY) {
 				auto cb = Z_ARR(item->val);
@@ -241,7 +242,7 @@ void call_before(Bucket *cbs, zend_string *before_key, zval *signature)
 					scope = zend_fetch_class(Z_STR_P(first), ZEND_FETCH_CLASS_AUTO);
 					func = zend_hash_find(&scope->function_table, Z_STR_P(method));
 				}
-				zend_call_known_function(Z_FUNC_P(func), obj, scope, nullptr, 1, signature, nullptr);
+				zend_call_known_function(Z_FUNC_P(func), obj, scope, nullptr, 1, jp, nullptr);
 			}
 		ZEND_HASH_FOREACH_END();
 	}

@@ -49,13 +49,13 @@ ZEND_END_ARG_INFO()
 } while (0);
 
 BEGIN_EXTERN_C()
-static PHP_METHOD(signature, __construct);
-static PHP_METHOD(signature, getClassName);
-static PHP_METHOD(signature, getMethodName);
-static PHP_METHOD(signature, getArgs);
+PHP_METHOD(signature, __construct);
+PHP_METHOD(signature, getClassName);
+PHP_METHOD(signature, getMethodName);
+PHP_METHOD(signature, getArgs);
 END_EXTERN_C()
 
-const static zend_function_entry signature_methods[] = {
+const zend_function_entry signature_methods[] = {
     PHP_ME(signature, __construct, arginfo_sign_construct, ZEND_ACC_PUBLIC|ZEND_ACC_CTOR)
     PHP_ME(signature, getClassName, arginfo_sign_get_class_name, ZEND_ACC_PUBLIC)
     PHP_ME(signature, getMethodName, arginfo_sign_get_method_name, ZEND_ACC_PUBLIC)

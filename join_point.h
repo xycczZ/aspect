@@ -32,25 +32,26 @@ ZEND_END_ARG_INFO()
 void init_join_point();
 
 BEGIN_EXTERN_C()
-static PHP_METHOD(JoinPoint, __construct);
-static PHP_METHOD(JoinPoint, getSignature);
+PHP_METHOD(JoinPoint, __construct);
+PHP_METHOD(JoinPoint, getSignature);
 
-static PHP_METHOD(ProceedJoinPoint, __construct);
-static PHP_METHOD(ProceedJoinPoint, proceed);
-static PHP_METHOD(ProceedJoinPoint, proceedWith);
+PHP_METHOD(ProceedJoinPoint, __construct);
+PHP_METHOD(ProceedJoinPoint, proceed);
+PHP_METHOD(ProceedJoinPoint, proceedWith);
 END_EXTERN_C()
 
-static const zend_function_entry join_point_ms[] = {
+const zend_function_entry join_point_ms[] = {
         PHP_ME(JoinPoint, __construct, arginfo_jp_construct, ZEND_ACC_PUBLIC|ZEND_ACC_CTOR)
         PHP_ME(JoinPoint, getSignature, arginfo_jp_get_signature, ZEND_ACC_PUBLIC)
         PHP_FE_END
 };
 
-static const zend_function_entry pjpm[] = {
+const zend_function_entry pjpm[] = {
     PHP_ME(ProceedJoinPoint, __construct, arginfo_pjp_construct, ZEND_ACC_PUBLIC|ZEND_ACC_CTOR)
     PHP_ME(ProceedJoinPoint, proceed, arginfo_pjp_proceed, ZEND_ACC_PUBLIC)
     PHP_ME(ProceedJoinPoint, proceedWith, arginfo_pjp_proceed_with, ZEND_ACC_PUBLIC)
     PHP_FE_END
 };
 
+auto create_join_point(zval *) -> zval;
 #endif //ASPECT_JOIN_POINT_H

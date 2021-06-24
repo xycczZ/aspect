@@ -99,3 +99,13 @@ void init_join_point()
     ZVAL_UNDEF(&result);
     zend_declare_property(proceed_join_point_ce, "result", strlen("result"), &result, ZEND_ACC_PRIVATE);
 }
+
+zval create_join_point(zval *sign) {
+    zval jp;
+
+    object_init_ex(&jp, join_point_ce);
+
+    zend_call_known_instance_method_with_1_params(join_point_ce->constructor, Z_OBJ(jp), nullptr, sign);
+
+    return jp;
+}
