@@ -35,7 +35,7 @@ extern "C" {
 int compare_aop(Bucket*, Bucket*);
 
 void call_before(Bucket*, zend_string*, zval*);
-void call_around(Bucket*, zend_string*);
+void call_around(Bucket*, zend_string*, zval*);
 void call_after_returning(Bucket*, zend_string*);
 void call_after_throwing(Bucket*, zend_string*);
 void call_after(Bucket*, zend_string*);

@@ -11,6 +11,8 @@ extern "C" {
 #include "zend_interfaces.h"
 #include "zend_closures.h"
 #include "zend_exceptions.h"
+#include <zend_vm_execute.h>
+#include "Zend/zend_observer.h"
 }
 #include "php_aspect.h"
 #include <algorithm>
@@ -99,10 +101,10 @@ static zval fit(const std::string& class_name, const std::string& method_name)
  * 当执行一个函数的时候， 检查类和方法是否符合全局变量$_ASPECT的切点表达式 常量复杂度， 如果启用了缓存功能，先检查缓存
  * 如果启用了缓存功能， 缓存符合条件的类::方法到 $_CACHE_AOP 这个数组中去, 缓存不符合条件的类::方法到$_NO_CACHE_AOP这个数组去
  */
-static int inject(zend_execute_data *execute_data)
+static void inject(ZEND_OPCODE_HANDLER_ARGS)
 {
     if (ASPECT_G(aspects).value.arr->nNumOfElements == 0) {
-        return ZEND_USER_OPCODE_DISPATCH;
+        return ;
     }
 
     if (execute_data->call->func->type != ZEND_INTERNAL_FUNCTION) {
@@ -128,18 +130,13 @@ static int inject(zend_execute_data *execute_data)
                 ZEND_HASH_FOREACH_BUCKET(Z_ARR(cb), cbs)
                     call_before(cbs, before_key, &jp);
                 ZEND_HASH_FOREACH_END();
-
-//                ZEND_HASH_FOREACH_BUCKET(Z_ARR(cb), cbs)
-//                    call_around(cbs, around_key);
-//                ZEND_HASH_FOREACH_END();
             }
-			// execute origin function
-            return ZEND_USER_OPCODE_RETURN;
+            return ;
         } else {
             php_printf("call: %s\n", execute_data->call->func->common.function_name->val);
         }
     }
-	return ZEND_USER_OPCODE_DISPATCH;
+	return ;
 }
 
 /* {{{ PHP_RINIT_FUNCTION */
@@ -149,11 +146,19 @@ PHP_RINIT_FUNCTION(aspect)
 	ZEND_TSRMLS_CACHE_UPDATE();
 #endif
 
-    zend_set_user_opcode_handler(ZEND_DO_FCALL, inject);
-    zend_set_user_opcode_handler(ZEND_DO_FCALL_BY_NAME, inject);
+    // zend_set_user_opcode_handler(ZEND_DO_FCALL, inject);
+    // zend_set_user_opcode_handler(ZEND_DO_FCALL_BY_NAME, inject);
 	return SUCCESS;
 }
 /* }}} */
+
+zend_observer_fcall_handlers zofi(ZEND_OPCODE_HANDLER_ARGS)
+{
+    return {
+        inject,
+        nullptr,
+    };
+}
 
 /* {{{ PHP_MINFO_FUNCTION */
 PHP_MINFO_FUNCTION(aspect)
@@ -181,6 +186,7 @@ PHP_MINIT_FUNCTION(aspect)
     init_signature_ce();
     init_join_point();
     zend_register_auto_global(zend_string_init_interned("_ASPECT", strlen("_ASPECT"), true), false, create_aspect_cb);
+    zend_observer_fcall_register(zofi);
     return SUCCESS;
 }
 
@@ -259,4 +265,11 @@ int compare_aop(Bucket* a, Bucket* b)
 	}
 
 	return Z_LVAL_P(ao) > Z_LVAL_P(bo) ? 1 : -1;
+}
+
+void call_around(Bucket* cbs, zend_string* around_key, zval* jp) {
+//    auto around = zend_hash_find(Z_ARR(cbs->val), around_key);
+//    if (nullptr != around) {
+//
+//    }
 }
