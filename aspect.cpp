@@ -11,7 +11,6 @@ extern "C" {
 #include "zend_interfaces.h"
 #include "zend_closures.h"
 #include "zend_exceptions.h"
-#include <zend_vm_execute.h>
 #include "Zend/zend_observer.h"
 }
 #include "php_aspect.h"
@@ -101,19 +100,19 @@ static zval fit(const std::string& class_name, const std::string& method_name)
  * 当执行一个函数的时候， 检查类和方法是否符合全局变量$_ASPECT的切点表达式 常量复杂度， 如果启用了缓存功能，先检查缓存
  * 如果启用了缓存功能， 缓存符合条件的类::方法到 $_CACHE_AOP 这个数组中去, 缓存不符合条件的类::方法到$_NO_CACHE_AOP这个数组去
  */
-static void inject(ZEND_OPCODE_HANDLER_ARGS)
+static void inject(zend_execute_data *execute_data)
 {
     if (ASPECT_G(aspects).value.arr->nNumOfElements == 0) {
         return ;
     }
 
-    if (execute_data->call->func->type != ZEND_INTERNAL_FUNCTION) {
-        if (execute_data->call->func->common.scope != nullptr) {
-            char *class_name = execute_data->call->func->common.scope->name->val;
+    if (execute_data->func->type != ZEND_INTERNAL_FUNCTION) {
+        if (execute_data->func->common.scope != nullptr) {
+            char *class_name = execute_data->func->common.scope->name->val;
             std::string dot_name{class_name};
             std::replace(dot_name.begin(), dot_name.end(), '\\', '.');
             // 然后判断当前执行的类和方法符合不符合切点表达式
-            auto cb = fit(dot_name, std::string{execute_data->call->func->common.function_name->val});
+            auto cb = fit(dot_name, std::string{execute_data->func->common.function_name->val});
             if (zend_array_count(Z_ARR(cb)) != 0) {
                 // before
 				auto before_key = PERMANENT_STR(before);
@@ -133,7 +132,7 @@ static void inject(ZEND_OPCODE_HANDLER_ARGS)
             }
             return ;
         } else {
-            php_printf("call: %s\n", execute_data->call->func->common.function_name->val);
+            php_printf("call: %s\n", execute_data->func->common.function_name->val);
         }
     }
 	return ;
@@ -152,7 +151,7 @@ PHP_RINIT_FUNCTION(aspect)
 }
 /* }}} */
 
-zend_observer_fcall_handlers zofi(ZEND_OPCODE_HANDLER_ARGS)
+zend_observer_fcall_handlers zofi(zend_execute_data *execute_data)
 {
     return {
         inject,

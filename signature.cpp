@@ -54,15 +54,15 @@ zval new_signature(zend_execute_data *execute_data)
     zval signature;
 
     zval clazz;
-    ZVAL_STR_COPY(&clazz, execute_data->call->func->common.scope->name);
+    ZVAL_STR_COPY(&clazz, execute_data->func->common.scope->name);
     zval method;
-    ZVAL_STR_COPY(&method, execute_data->call->func->common.function_name);
+    ZVAL_STR_COPY(&method, execute_data->func->common.function_name);
     zval index_args;
-    array_init_size(&index_args, ZEND_CALL_NUM_ARGS(execute_data->call));
+    array_init_size(&index_args, ZEND_CALL_NUM_ARGS(execute_data));
 
 
-    for (uint32_t i = 0; i < ZEND_CALL_NUM_ARGS(execute_data->call); ++i) {
-        auto arg = ZEND_CALL_VAR_NUM(execute_data->call, i);
+    for (uint32_t i = 0; i < ZEND_CALL_NUM_ARGS(execute_data); ++i) {
+        auto arg = ZEND_CALL_VAR_NUM(execute_data, i);
         add_index_zval(&index_args, i, arg);
     }
 
